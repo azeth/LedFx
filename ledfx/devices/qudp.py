@@ -52,7 +52,7 @@ class QUDPManager:
     
     def add(self, device) -> QUDPConnection:
         if device not in self._devices:
-            addr = (device._config["ip_address"], device._config["port"])
+            addr = (device.ip_address, device.port)
 
             if addr not in self._hosts:
                 connection = QUDPConnection(addr[0], addr[1])
@@ -69,7 +69,7 @@ class QUDPManager:
 
     def remove(self, device) -> None:
         if device in self._devices:
-            addr = (device._config["ip_address"], device._config["port"])
+            addr = (device.ip_address, device.port)
 
             self._hosts[addr].remove(device)
             self._devices.remove(device)
@@ -81,7 +81,7 @@ class QUDPManager:
 
     def refresh_rate(self, device):
         if device in self._devices:
-            addr = (device._config["ip_address"], device._config["port"])
+            addr = (device.ip_address, device.port)
             return self._connections[addr].refresh_rate
 
 
@@ -92,6 +92,9 @@ class QUDPDevice(Device):
 
     CONFIG_SCHEMA = vol.Schema(
         {
+            vol.Required(
+                "name", description="Friendly name for the device"
+            ): str,
             vol.Required(
                 "ip_address",
                 description="Hostname or IP address of the device",
@@ -112,14 +115,8 @@ class QUDPDevice(Device):
 
     def activate(self):
         # check if ip/hostname resolves okay
-        self.device_ip = resolve_destination(self._config["ip_address"])
-        self.device_port = self._config["port"]
-
-        if not self.device_ip:
-            _LOGGER.warning(
-                f"Cannot resolve destination {self._config['ip_address']}, aborting device {self.name} activation. Make sure the IP/hostname is correct and device is online."
-            )
-            return
+        self.ip_address = self._config["ip_address"]
+        self.port = self._config["port"]
 
         self._frame_id = 0
         self._connection = _MANAGER.add(self)

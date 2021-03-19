@@ -349,36 +349,36 @@ class Devices(RegistryLoader):
         Creates a new device.
         """
         # First, we try to make sure this device doesn't share a destination with any existing device
-        if "ip_address" in device_config.keys():
-            device_ip = device_config["ip_address"].rstrip(".")
-            device_config["ip_address"] = device_ip
-            try:
-                resolved_dest = await resolve_destination(
-                    self._ledfx.loop, device_ip
-                )
-            except ValueError:
-                _LOGGER.error(f"Failed to resolve address {device_ip}")
-                return
+        # if "ip_address" in device_config.keys():
+        #     device_ip = device_config["ip_address"].rstrip(".")
+        #     device_config["ip_address"] = device_ip
+        #     try:
+        #         resolved_dest = await resolve_destination(
+        #             self._ledfx.loop, device_ip
+        #         )
+        #     except ValueError:
+        #         _LOGGER.error(f"Failed to resolve address {device_ip}")
+        #         return
 
-            for existing_device in self._ledfx.devices.values():
-                if "ip_address" in existing_device.config.keys() and (
-                    existing_device.config["ip_address"] == device_ip
-                    or existing_device.config["ip_address"] == resolved_dest
-                ):
-                    if device_type == "e131":
-                        # check the universes for e131, it might still be okay at a shared ip_address
-                        # eg. for multi output controllers
-                        if (
-                            device_config["universe"]
-                            == existing_device.config["universe"]
-                        ):
-                            msg = f"Ignoring {device_ip}: Shares IP and starting universe with existing device {existing_device.name}"
-                            _LOGGER.info(msg)
-                            raise ValueError(msg)
-                    else:
-                        msg = f"Ignoring {device_ip}: Shares destination with existing device {existing_device.name}"
-                        _LOGGER.info(msg)
-                        raise ValueError(msg)
+        #     for existing_device in self._ledfx.devices.values():
+        #         if "ip_address" in existing_device.config.keys() and (
+        #             existing_device.config["ip_address"] == device_ip
+        #             or existing_device.config["ip_address"] == resolved_dest
+        #         ):
+        #             if device_type == "e131":
+        #                 # check the universes for e131, it might still be okay at a shared ip_address
+        #                 # eg. for multi output controllers
+        #                 if (
+        #                     device_config["universe"]
+        #                     == existing_device.config["universe"]
+        #                 ):
+        #                     msg = f"Ignoring {device_ip}: Shares IP and starting universe with existing device {existing_device.name}"
+        #                     _LOGGER.info(msg)
+        #                     raise ValueError(msg)
+        #             else:
+        #                 msg = f"Ignoring {device_ip}: Shares destination with existing device {existing_device.name}"
+        #                 _LOGGER.info(msg)
+        #                 raise ValueError(msg)
 
         # If WLED device, get all the necessary config from the device itself
         if device_type == "wled":
