@@ -16,6 +16,7 @@ class QUDPConnection:
     DATA_PACKET = 0
     RESET_PACKET = 1
     SETUP_PACKET = 2
+    POWER_PACKET = 5
     MAGIC_NUMBER = 3042937533
     QUEUE_LENGTH = 8
 
@@ -25,6 +26,15 @@ class QUDPConnection:
 
         self.udp = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, 0)
         self.udp.connect((self.ip, self.port))
+
+    def power(self, state) -> None:
+        if state == True:
+            flag = 1
+        else:
+            flag = 0
+
+        data = pack('<IBB', self.MAGIC_NUMBER, self.POWER_PACKET, flag)
+        self.udp.send(data)
 
     def send(self, strip_num, frame_num, frame_data) -> None:
         data = pack('<IBBIH', self.MAGIC_NUMBER, self.DATA_PACKET, strip_num, frame_num, len(frame_data))
@@ -120,13 +130,18 @@ class QUDPDevice(Device):
 
         self._frame_id = 0
         self._connection = _MANAGER.add(self)
+        
+        self._connection.power(True)
         self._connection.reset(self._config["strip_index"])
+        
         super().activate()
 
     def deactivate(self):
         super().deactivate()
-        _MANAGER.remove(self)
         
+        self._connection.power(False)
+        _MANAGER.remove(self)
+
         self._frame_id = 0
         self._connection = None
 
