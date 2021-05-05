@@ -1,5 +1,6 @@
 import logging
 import random
+from json import JSONDecodeError
 
 import voluptuous as vol
 from aiohttp import web
@@ -54,9 +55,16 @@ class EffectsEndpoint(RestEndpoint):
                 "status": "failed",
                 "reason": f"Display {display_id} has no active effect",
             }
-            return web.json_response(data=response, status=500)
+            return web.json_response(data=response, status=400)
 
-        data = await request.json()
+        try:
+            data = await request.json()
+        except JSONDecodeError:
+            response = {
+                "status": "failed",
+                "reason": "JSON Decoding failed",
+            }
+            return web.json_response(data=response, status=400)
         effect_config = data.get("config")
         effect_type = data.get("type")
         if effect_config is None:
@@ -108,24 +116,40 @@ class EffectsEndpoint(RestEndpoint):
         # on changes to keys like gradient or colour. but we're gonna wait until
         # frontend incremental updates bc it would make that so much easier
 
-        # try:
-        #     if (
-        #         display.active_effect
-        #         and display.active_effect.type == effect_type
-        #     ):
-        #         effect = display.active_effect
-        #         display.active_effect.update_config(effect_config)
-        #     else:
-        #         effect = self._ledfx.effects.create(
-        #             ledfx=self._ledfx, type=effect_type, config=effect_config
-        #         )
-        #         display.set_effect(effect)
-
         try:
-            effect = self._ledfx.effects.create(
-                ledfx=self._ledfx, type=effect_type, config=effect_config
-            )
-            display.set_effect(effect)
+            # handling an effect update. nested if else and repeated code bleh. ain't a looker ;)
+            if (
+                display.active_effect
+                and display.active_effect.type == effect_type
+            ):
+                # substring search to match any key containing "color" or "colour"
+                # this handles special cases where we want to update an effect and also trigger
+                # a transition by creating a new effect.
+                if next(
+                    (
+                        key
+                        for key in effect_config.keys()
+                        if "color" or "colour" in key
+                    ),
+                    None,
+                ):
+                    effect = self._ledfx.effects.create(
+                        ledfx=self._ledfx,
+                        type=effect_type,
+                        config=display.active_effect.config | effect_config,
+                    )
+                    display.set_effect(effect)
+                else:
+                    effect = display.active_effect
+                    display.active_effect.update_config(effect_config)
+
+            # handling a new effect
+            else:
+                effect = self._ledfx.effects.create(
+                    ledfx=self._ledfx, type=effect_type, config=effect_config
+                )
+                display.set_effect(effect)
+
         except (ValueError, RuntimeError) as msg:
             response = {
                 "status": "failed",
@@ -136,11 +160,11 @@ class EffectsEndpoint(RestEndpoint):
         # Update and save the configuration
         for display in self._ledfx.config["displays"]:
             if display["id"] == display_id:
-                # if not ('effect' in display):
-                display["effect"] = {}
-                display["effect"]["type"] = effect.type
-                display["effect"]["config"] = effect.config
-                break
+                if not ("effect" in display):
+                    display["effect"] = {}
+                    display["effect"]["type"] = effect.type
+                    display["effect"]["config"] = effect.config
+                    break
 
         save_config(
             config=self._ledfx.config,
@@ -167,14 +191,21 @@ class EffectsEndpoint(RestEndpoint):
             }
             return web.json_response(data=response, status=404)
 
-        data = await request.json()
+        try:
+            data = await request.json()
+        except JSONDecodeError:
+            response = {
+                "status": "failed",
+                "reason": "JSON Decoding failed",
+            }
+            return web.json_response(data=response, status=400)
         effect_type = data.get("type")
         if effect_type is None:
             response = {
                 "status": "failed",
                 "reason": 'Required attribute "type" was not provided',
             }
-            return web.json_response(data=response, status=500)
+            return web.json_response(data=response, status=400)
 
         effect_config = data.get("config")
         if effect_config is None:

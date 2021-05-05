@@ -13,7 +13,7 @@ from ledfx.utils import BaseRegistry, RegistryLoader
 _LOGGER = logging.getLogger(__name__)
 
 
-class DummyEffect(object):
+class DummyEffect:
     def __init__(self, pixel_count):
         self._pixels = np.zeros((pixel_count, 3))
 
@@ -216,6 +216,11 @@ class Effect(BaseRegistry):
                 description="Apply a background colour",
                 default="black",
             ): vol.In(list(COLORS.keys())),
+            vol.Optional(
+                "background_brightness",
+                description="Brightness of the background colour",
+                default=1.0,
+            ): vol.All(vol.Coerce(float), vol.Range(min=0.0, max=1.0)),
         }
     )
 
@@ -244,11 +249,17 @@ class Effect(BaseRegistry):
 
     def update_config(self, config):
         # TODO: Sync locks to ensure everything is thread safe
+
         validated_config = type(self).schema()(config)
-        if self._config is not None:
-            self._config = self._config | validated_config
+        prior_config = self._config
+
+        if self._config != {}:
+
+            self._config = prior_config | config
         else:
             self._config = validated_config
+        self.configured_blur = self._config["blur"]
+        self._bg_brightness = self._config["background_brightness"]
         self._bg_color = np.array(
             COLORS[self._config["background_color"]], dtype=float
         )
@@ -279,7 +290,7 @@ class Effect(BaseRegistry):
         complex properties off the configuration, otherwise the config
         should just be referenced in the effect's loop directly
         """
-        self.configured_blur = self._config["blur"]
+
         pass
 
     @property
@@ -305,10 +316,8 @@ class Effect(BaseRegistry):
             if self._config["background_color"]:
                 # TODO: colours in future should have an alpha value, which would work nicely to apply to dim the background colour
                 # for now, just set it a bit less bright.
-                bg_brightness = np.max(pixels, axis=1)
-                bg_brightness = (255 - bg_brightness) / 510
                 _bg_color_array = np.tile(self._bg_color, (len(pixels), 1))
-                pixels += np.multiply(_bg_color_array.T, bg_brightness).T
+                pixels += np.multiply(_bg_color_array.T, self._bg_brightness).T
             if self._config["brightness"] is not None:
                 pixels = brightness_pixels(pixels, self._config["brightness"])
             # If the configured blur is greater than 0 we need to blur it
@@ -351,10 +360,8 @@ class Effect(BaseRegistry):
             if self._config["background_color"]:
                 # TODO: colours in future should have an alpha value, which would work nicely to apply to dim the background colour
                 # for now, just set it a bit less bright.
-                bg_brightness = np.max(pixels, axis=1)
-                bg_brightness = (255 - bg_brightness) / 510
                 _bg_color_array = np.tile(self._bg_color, (len(pixels), 1))
-                pixels += np.multiply(_bg_color_array.T, bg_brightness).T
+                pixels += np.multiply(_bg_color_array.T, self._bg_brightness).T
             if self._config["brightness"] is not None:
                 pixels = brightness_pixels(pixels, self._config["brightness"])
             # If the configured blur is greater than 0 we need to blur it

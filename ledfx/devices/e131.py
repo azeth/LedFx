@@ -36,6 +36,11 @@ class E131Device(NetworkedDevice):
                 description="Channel offset within the DMX universe",
                 default=0,
             ): vol.All(vol.Coerce(int), vol.Range(min=0)),
+            vol.Optional(
+                "e131_Packet_Priority",
+                description="Priority given to the sACN packets for this device",
+                default=100,
+            ): vol.All(vol.Coerce(int), vol.Range(min=0, max=200)),
         }
     )
 
@@ -80,12 +85,15 @@ class E131Device(NetworkedDevice):
         # Configure sACN and start the dedicated thread to flush the buffer
         # Some variables are immutable and must be called here
         self._sacn = sacn.sACNsender(source_name=self.name)
+
         for universe in range(
             self._config["universe"], self._config["universe_end"] + 1
         ):
             _LOGGER.info(f"sACN activating universe {universe}")
             self._sacn.activate_output(universe)
-
+            self._sacn[universe].priority = self._config[
+                "e131_Packet_Priority"
+            ]
             self._sacn[universe].multicast = multicast
             if not multicast:
                 self._sacn[universe].destination = self.destination
@@ -93,7 +101,7 @@ class E131Device(NetworkedDevice):
         self._sacn.start()
         self._sacn.manual_flush = True
 
-        _LOGGER.info("sACN sender started.")
+        _LOGGER.info(f"sACN sender for {self.config['name']} started.")
         super().activate()
 
     def deactivate(self):
@@ -108,13 +116,13 @@ class E131Device(NetworkedDevice):
 
         self._sacn.stop()
         self._sacn = None
-        _LOGGER.info("sACN sender stopped.")
+        _LOGGER.info(f"sACN sender for {self.config['name']} stopped.")
 
     def flush(self, data):
         """Flush the data to all the E1.31 channels account for spanning universes"""
 
         if not self._sacn:
-            raise Exception("sACN sender not started.")
+            self.activate()
         if data.size != self._config["channel_count"]:
             raise Exception(
                 f"Invalid buffer size. {data.size} != {self._config['channel_count']}"

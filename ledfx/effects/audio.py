@@ -31,7 +31,7 @@ _LOGGER = logging.getLogger(__name__)
 """
 warnings.filterwarnings("ignore")
 
-
+_LOGGER = logging.getLogger(__name__)
 FrequencyRange = namedtuple("FrequencyRange", "min,max")
 
 FREQUENCY_RANGES = {
@@ -55,7 +55,7 @@ MIN_MIDI = 21
 MAX_MIDI = 108
 
 
-class AudioInputSource(object):
+class AudioInputSource:
 
     _is_activated = False
     _audio = None
@@ -93,8 +93,11 @@ class AudioInputSource(object):
     def activate(self):
 
         if self._audio is None:
-            self._audio = pyaudio.PyAudio()
-
+            try:
+                self._audio = pyaudio.PyAudio()
+            except OSError as Error:
+                _LOGGER.critical(f"Error: {Error}. Shutting down.")
+                self._ledfx.stop()
         # Setup a pre-emphasis filter to help balance the highs
         self.pre_emphasis = None
         if self._config["pre_emphasis"]:
@@ -161,7 +164,7 @@ class AudioInputSource(object):
             self._stream.start_stream()
         except OSError:
             _LOGGER.critical("Unable to open Audio Device - please retry.")
-            self.deactivate
+            self.deactivate()
         _LOGGER.info("Audio source opened.")
 
     def deactivate(self):
@@ -216,7 +219,9 @@ class AudioInputSource(object):
 
         # Calculate the current volume for silence detection
         self._volume = aubio.db_spl(self._raw_audio_sample)
-        if np.isinf(self._volume):
+        # Setting volume to 0 if volume <= 90 seems to work.
+        # Might need to do some fiddling with different noise floors if there's any future issues
+        if np.isinf(self._volume) or self._volume <= -90:
             self._volume = 0.0
         self._volume_filter.update(self._volume)
 

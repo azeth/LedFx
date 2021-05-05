@@ -7,11 +7,11 @@ import SaveAltIcon from '@material-ui/icons/SaveAlt';
 import BuildIcon from '@material-ui/icons/Build';
 import DeviceHubIcon from '@material-ui/icons/DeviceHub';
 import PowerIcon from '@material-ui/icons/Power';
-import LockOpenIcon from '@material-ui/icons/LockOpen';
+// import LockOpenIcon from '@material-ui/icons/LockOpen';
 
 // Components and Views
-import DashboardView from '../views/Dashboard';
-import BladeboardView from '../views/Dashboard/BladeBoard';
+// import DashboardView from '../views/Dashboard';
+// import BladeboardView from '../views/Dashboard/BladeBoard';
 import BladeboardDnDView from '../views/Dashboard/BladeBoardDnD';
 import DevicesView from '../views/Devices';
 import ScenesView from '../views/Scenes';
@@ -19,33 +19,40 @@ import DisplayView from '../views/Display';
 import VirtualsView from '../views/Virtuals';
 import IntegrationsView from '../views/Integrations';
 import AdvancedView from '../views/Advanced';
-import SettingsView from '../views/Settings';
+// import SettingsView from '../views/Settings';
 import DeveloperView from '../views/Developer';
 
-const dashboard =
-    parseInt(window.localStorage.getItem('BladeMod')) > 2
-        ? {
-            path: '/dashboard',
-            sidebarName: 'Bladeboard',
-            navbarName: 'Dashboard',
-            icon: Dashboard,
-            component: BladeboardDnDView,
-        }
-        : (parseInt(window.localStorage.getItem('BladeMod')) > 0
-            ? {
-                path: '/dashboard',
-                sidebarName: 'Bladeboard',
-                navbarName: 'Dashboard',
-                icon: Dashboard,
-                component: BladeboardView,
-            }
-            : {
-                path: '/dashboard',
-                sidebarName: 'Dashboard',
-                navbarName: 'Dashboard',
-                icon: Dashboard,
-                component: DashboardView,
-            })
+// const dashboard =
+//     parseInt(window.localStorage.getItem('BladeMod')) > 2
+//         ? {
+//             path: '/dashboard',
+//             sidebarName: 'Bladeboard',
+//             navbarName: 'Dashboard',
+//             icon: Dashboard,
+//             component: BladeboardDnDView,
+//         }
+//         : (parseInt(window.localStorage.getItem('BladeMod')) > 0
+//             ? {
+//                 path: '/dashboard',
+//                 sidebarName: 'Bladeboard',
+//                 navbarName: 'Dashboard',
+//                 icon: Dashboard,
+//                 component: BladeboardView,
+//             }
+//             : {
+//                 path: '/dashboard',
+//                 sidebarName: 'Dashboard',
+//                 navbarName: 'Dashboard',
+//                 icon: Dashboard,
+//                 component: DashboardView,
+//             })
+const dashboard = {
+    path: '/dashboard',
+    sidebarName: 'Dashboard',
+    navbarName: 'Dashboard',
+    icon: Dashboard,
+    component: BladeboardDnDView,
+}
 
 
 
@@ -80,21 +87,21 @@ const integrations =
             icon: PowerIcon,
             component: IntegrationsView,
         };
-const advanced =
-    parseInt(window.localStorage.getItem('BladeMod')) > 1
-        ? {
-            path: '/advanced',
-            sidebarName: 'Advanced',
-            navbarName: 'Advanced',
-            icon: LockOpenIcon,
-            component: AdvancedView,
-        }
-        : {
-            path: '/advanced',
-            navbarName: 'Advanced',
-            icon: LockOpenIcon,
-            component: AdvancedView,
-        };
+// const advanced =
+//     parseInt(window.localStorage.getItem('BladeMod')) > 1
+//         ? {
+//             path: '/advanced',
+//             sidebarName: 'Advanced',
+//             navbarName: 'Advanced',
+//             icon: LockOpenIcon,
+//             component: AdvancedView,
+//         }
+//         : {
+//             path: '/advanced',
+//             navbarName: 'Advanced',
+//             icon: LockOpenIcon,
+//             component: AdvancedView,
+//         };
 const viewRoutes = [
     dashboard,
     {
@@ -125,14 +132,14 @@ const viewRoutes = [
         sidebarName: 'Settings',
         navbarName: 'Settings',
         icon: BuildIcon,
-        component: SettingsView,
+        component: AdvancedView,
     },
-    advanced,
-    {
-        path: '/developer/:graphString',
-        navbarName: 'Developer',
-        component: DeveloperView,
-    },
+    // advanced,
+    // {
+    //     path: '/developer/:graphString',
+    //     navbarName: 'Developer',
+    //     component: DeveloperView,
+    // },
     {
         path: '/developer/melbank',
         sidebarName: 'Developer',

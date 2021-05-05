@@ -161,7 +161,7 @@ def git_version():
     return GIT_REVISION
 
 
-class WLED(object):
+class WLED:
     """
     A collection of WLED helper functions
     """
@@ -495,6 +495,17 @@ class WLED(object):
         )
 
 
+def empty_queue(queue: asyncio.Queue):
+    """Empty an asyncio queue
+
+    Args:
+        queue (asyncio.Queue): The asyncio queue to empty
+    """
+    for _ in range(queue.qsize()):
+        queue.get_nowait()
+        queue.task_done()
+
+
 async def resolve_destination(loop, destination, port=7777, timeout=3):
     """Uses asyncio's non blocking DNS funcs to attempt domain lookup
 
@@ -517,7 +528,6 @@ async def resolve_destination(loop, destination, port=7777, timeout=3):
             return dest[0][4][0]
         except socket.gaierror:
             raise ValueError(f"Failed to resolve destination {cleaned_dest}")
-        return False
 
 
 def currently_frozen():
@@ -566,7 +576,7 @@ def getattr_explicit(cls, attr, *default):
         return default[0]
 
     raise AttributeError(
-        "type object '{}' has no attribute '{}'.".format(cls.__name__, attr)
+        f"type object '{cls.__name__}' has no attribute '{attr}'."
     )
 
 
@@ -656,7 +666,7 @@ class BaseRegistry(ABC):
         return setattr(self, "_config", _config)
 
 
-class RegistryLoader(object):
+class RegistryLoader:
     """Manages loading of components for a given registry"""
 
     def __init__(self, ledfx, cls, package):
@@ -705,7 +715,7 @@ class RegistryLoader(object):
         """
 
         found = self.discover_modules(package)
-        _LOGGER.info("Importing {} from {}".format(found, package))
+        _LOGGER.info(f"Importing {found} from {package}")
         for name in found:
             importlib.import_module(name)
 
@@ -747,14 +757,14 @@ class RegistryLoader(object):
                 module = importlib.import_module(name, path)
                 sys.modules[name] = module
             except SyntaxError as e:
-                _LOGGER.error("Failed to reload {}: {}".format(name, e))
+                _LOGGER.error(f"Failed to reload {name}: {e}")
         else:
             pass
 
     def reload(self, force=False):
         """Reloads the registry"""
         found = self.discover_modules(self._package)
-        _LOGGER.info("Reloading {} from {}".format(found, self._package))
+        _LOGGER.info(f"Reloading {found} from {self._package}")
         for name in found:
             self.reload_module(name)
 
@@ -774,7 +784,7 @@ class RegistryLoader(object):
         dupe_id = id
         dupe_index = 1
         while id in self._objects:
-            id = "{}-{}".format(dupe_id, dupe_index)
+            id = f"{dupe_id}-{dupe_index}"
             dupe_index = dupe_index + 1
 
         # Create the new object based on the registry entires and
