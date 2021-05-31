@@ -12,16 +12,22 @@ import CloudUploadIcon from '@material-ui/icons/CloudUpload';
 import CloudDownloadIcon from '@material-ui/icons/CloudDownload';
 import PowerSettingsNewIcon from '@material-ui/icons/PowerSettingsNew';
 import AudioInputCard from './AudioInput'
-import { getAudioInputs, setAudioInput, setConfig } from 'modules/settings';
+import { getAudioInputs, setAudioInput } from 'modules/settings';
 import { Delete, Refresh } from '@material-ui/icons';
 import * as settingProxies from 'proxies/settings';
 import { showdynSnackbar } from 'modules/ui';
-const useStyles = makeStyles({
+import PopoverSure from 'components/PopoverSure';
+const useStyles = makeStyles(theme => ({
     content: {
         display: 'flex',
         flexDirection: 'column',
     },
-});
+    actionButton: {
+        marginTop: '0.5rem',
+        width: '100%',
+        borderColor: theme.palette.grey[400]
+    }
+}));
 
 const GeneralCard = () => {
 
@@ -62,7 +68,8 @@ const GeneralCard = () => {
                 )
                 throw new Error('Error fetching system config');
             }
-            download(response.data.config, 'config.json', 'application/json');
+
+            download({ ...response.data.config, ...{ ledfx_presets: undefined } }, 'config.json', 'application/json');
             dispatch(
                 showdynSnackbar({ message: 'downloading config.json', type: 'info' })
             )
@@ -73,17 +80,88 @@ const GeneralCard = () => {
             )
         }
     }
+    const fileChanged = (e) => {
+        const fileReader = new FileReader();
+        fileReader.readAsText(e.target.files[0], "UTF-8");
+        fileReader.onload = async (e) => {
+            console.log("e.target.result", e.target.result);
+            try {
+                const response = await settingProxies.importSystemConfig(e.target.result);
+                if (response.statusText !== 'OK') {
+                    dispatch(
+                        showdynSnackbar({ message: 'Error while importing config.json', type: 'error' })
+                    )
+                    throw new Error('Error importing system config');
+                }
+
+                dispatch(
+                    showdynSnackbar({ message: 'uploading config.json', type: 'info' })
+                )
+                window.location = window.location.href
+            } catch (error) {
+                console.log(error)
+                // dispatch(
+                //     showdynSnackbar({ message: 'Error while importing config.json', type: 'error' })
+                // )
+            }
+        };
+    }
+    const configDelete = async () => {
+        try {
+            const response = await settingProxies.deleteSystemConfig();
+            if (response.statusText !== 'OK') {
+                dispatch(
+                    showdynSnackbar({ message: 'Error while resetting config.json', type: 'error' })
+                )
+                throw new Error('Error fetching system config');
+            }
+            // console.log(response)
+            if (response.statusText === 'OK') {
+                // dispatch(
+                //     showdynSnackbar({ message: response.data.payload.reason, type: response.data.payload.type })
+                // )
+                window.location = window.location.href
+            }
+        } catch (error) {
+            console.log(error)
+            dispatch(
+                showdynSnackbar({ message: 'Error while resetting config.json', type: 'error' })
+            )
+        }
+    }
     const changeTheme = event => {
         setTheme(event.target.value);
         window.localStorage.setItem('blade', event.target.value);
         window.location = window.location.href;
     };
-    const onChangePreferredMode = value => {
-        dispatch(setConfig({ config: { wled_preferences: {wled_preferred_mode:{preferred_mode: value, user_enabled: true }} }}));
+    const handleRestart = async (e) => {
+        try {
+            const response = await settingProxies.restart();
+            if (response.statusText !== 'OK') {
+                dispatch(
+                    showdynSnackbar({ message: 'Error while restarting', type: 'error' })
+                )
+                throw new Error('Error fetching system config');
+            }
+            console.log(response)
+            if (response.statusText === 'OK' && response.data.payload) {
+                dispatch(
+                    showdynSnackbar({ message: response.data.payload.reason, type: response.data.payload.type })
+                )
+            }
+        } catch (error) {
+            console.log(error)
+            // dispatch(
+            //     showdynSnackbar({ message: 'Error while downloading config.json', type: 'error' })
+            // )
+        }
     };
-    const onChangeStartupScan = value => {
-        dispatch(setConfig({ config: { scan_on_startup: value } }));
-    };
+    // const onChangePreferredMode = value => {
+    //     dispatch(setConfig({ config: { wled_preferences: { wled_preferred_mode: { preferred_mode: value, user_enabled: true } } } }));
+    // };
+    // const onChangeStartupScan = value => {
+    //     dispatch(setConfig({ config: { scan_on_startup: value } }));
+    // };
 
     useEffect(() => {
         dispatch(getAudioInputs())
@@ -92,47 +170,7 @@ const GeneralCard = () => {
         <Card style={{ marginBottom: '2rem' }}>
             <CardHeader title="General" subheader="Configure LedFx-Settings" />
             <CardContent className={classes.content}>
-                {/* <FormControlLabel
-                    control={
-                        <Checkbox
-                            name="scanAtStartup"
-                        />
-                    }
-                    label="Scan for WLED on startup"
-                />
-                <FormControlLabel
-                    value="scan"
-                    control={<Switch color="primary" />}
-                    label="Scan for WLED on startup"
-                    labelPlacement="end"
-                /> */}
                 <AudioInputCard raw {...audioInputs} onChange={(e) => dispatch(setAudioInput(e))} />
-                <FormControl>
-                    <InputLabel id="wled-scan-selector">Scan for WLED on startup</InputLabel>
-                    <Select
-                        labelId="wled-scan-selector"
-                        id="wled-scan-select"
-                        value={settings.scan_on_startup}
-                        onChange={(e) => onChangeStartupScan(e.target.value)}
-                    >
-                        <MenuItem value={true}>Yes</MenuItem>
-                        <MenuItem value={false}>No</MenuItem>
-                    </Select>
-
-                </FormControl>
-                <FormControl>
-                    <InputLabel id="wled-mode-selector">Preferred WLED mode</InputLabel>
-                    <Select
-                        labelId="wled-mode-selector"
-                        id="wled-mode-select"
-                        value={settings.wled_preferred_mode}
-                        onChange={(e) => onChangePreferredMode(e.target.value)}
-                    >
-                        <MenuItem value={"unset"}>Unset</MenuItem>
-                        <MenuItem value={"E131"}>E131</MenuItem>
-                        <MenuItem value={"DDP"}>DDP</MenuItem>
-                    </Select>
-                </FormControl>
                 <FormControl>
                     <InputLabel id="theme-selector">Theme</InputLabel>
                     <Select
@@ -156,37 +194,60 @@ const GeneralCard = () => {
                     size="small"
                     startIcon={<CloudUploadIcon />}
                     variant="outlined"
+                    className={classes.actionButton}
                     style={{ marginTop: '1.5rem' }}
                     onClick={configDownload}
                 >
                     Export Config
                 </Button>
+                <PopoverSure
+                    startIcon={<Delete />}
+                    label="Reset Config"
+                    size="small"
+                    variant="outlined"
+                    color="inherit"
+                    className={classes.actionButton}
+                    onConfirm={configDelete}
+                    direction="center"
+                    vertical="top"
+                />
+                <input
+                    hidden
+                    accept="application/json"
+                    id="contained-button-file"
+                    type="file"
+                    onChange={(e) => fileChanged(e)}
+                />
+                <label htmlFor="contained-button-file">
+                    <Button
+                        component="span"
+                        size="small"
+                        startIcon={<CloudDownloadIcon />}
+                        variant="outlined"
+                        className={classes.actionButton}
 
+                    >
+                        Import Config
+                        </Button>
+                </label>
+                <Button
+                    size="small"
+                    startIcon={<Refresh />}
+                    variant="outlined"
+                    className={classes.actionButton}
+                    onClick={handleRestart}
+
+                >
+                    Restart LedFx
+                        </Button>
                 {parseInt(window.localStorage.getItem('BladeMod')) > 1 && (
                     <>
-                        <Button
-                            size="small"
-                            startIcon={<CloudDownloadIcon />}
-                            variant="outlined"
-                            style={{ marginTop: '0.5rem' }}
-                            disabled
-                        >
-                            Import Config
-                        </Button>
-                        <Button
-                            size="small"
-                            startIcon={<Delete />}
-                            variant="outlined"
-                            style={{ marginTop: '0.5rem' }}
-                            disabled
-                        >
-                            Reset Config
-                        </Button>
+
                         <Button
                             size="small"
                             startIcon={<Refresh />}
                             variant="outlined"
-                            style={{ marginTop: '0.5rem' }}
+                            className={classes.actionButton}
                             disabled
                         >
                             Check Updates
@@ -197,7 +258,7 @@ const GeneralCard = () => {
                     size="small"
                     startIcon={<PowerSettingsNewIcon />}
                     variant="outlined"
-                    style={{ marginTop: '0.5rem' }}
+                    className={classes.actionButton}
                     onClick={shutdown}
                 >
                     Shutdown

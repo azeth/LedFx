@@ -29,12 +29,9 @@ INSTALL_REQUIRES = [
     "sacn>=1.6.3",
     "aiohttp~=3.7.4.post0",
     "multidict>=5.0.0",
-    "aiohttp_jinja2>=1.4.0",
     "requests>=2.24.0",
     "aubio>=0.4.9",
-    # Zeroconf Bug introduced in 0.29
-    # https://github.com/jstasiak/python-zeroconf/issues/337
-    "zeroconf<=0.28.8",
+    "zeroconf==0.30.0",
     'pywin32>=300; platform_system == "Windows"',
     "cython>=0.29.21",
     "pyupdater>=3.1.0",
@@ -43,6 +40,7 @@ INSTALL_REQUIRES = [
     "pyserial>=3.5",
     "pystray>=0.17",
     "tcp-latency>=0.0.10",
+    "aiohttp_cors>=0.7.0",
 ]
 
 setup(
